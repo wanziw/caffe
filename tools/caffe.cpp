@@ -10,6 +10,7 @@ namespace bp = boost::python;
 #include <map>
 #include <string>
 #include <vector>
+#include <fstream>
 
 #include "boost/algorithm/string.hpp"
 #include "caffe/caffe.hpp"
@@ -292,12 +293,30 @@ int test() {
   vector<int> test_score_output_id;
   vector<float> test_score;
   float loss = 0;
+  std::ofstream fout1("features.out");
+  //the loop that will run testing. You can specify the FLAGS_iterations by the numer of testing dataset.
   for (int i = 0; i < FLAGS_iterations; ++i) {
     float iter_loss;
     const vector<Blob<float>*>& result =
         caffe_net.Forward(&iter_loss);
     loss += iter_loss;
     int idx = 0;
+
+    const boost::shared_ptr<Blob<float> > blob = caffe_net.blob_by_name("fc160");
+    int batch_size = blob->num();
+    int dim_features = blob->count();
+    const float *begin = blob->cpu_data();
+    const float *end   = begin + batch_size * 160;
+    vector<float> v1(begin, end);
+
+    std::cout<<blob->num();
+    std::cout<<dim_features<<std::endl;
+    for(int ii = 0; ii < v1.size(); ii++) {
+	fout1<<v1[ii]<<" ";
+	if((ii + 1) % 160 == 0)
+	    fout1<<"\n";
+    }
+
     for (int j = 0; j < result.size(); ++j) {
       const float* result_vec = result[j]->cpu_data();
       for (int k = 0; k < result[j]->count(); ++k, ++idx) {
